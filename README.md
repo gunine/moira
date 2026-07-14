@@ -69,6 +69,7 @@ npm ci → npm test → npm run build → dist 업로드 → GitHub Pages 배포
 ## 시뮬레이션 모델
 
 전체 로직은 [src/simulate.ts](src/simulate.ts)에 순수 함수로 격리되어 있습니다.
+다이어그램과 함께 보는 상세 동작 원리는 [docs/how-it-works.md](docs/how-it-works.md)를 참고하세요.
 
 ```ts
 simulate(nodes: NodeSpec[], workloads: WorkloadSpec[], { strategy: "binpack" | "spread" })
