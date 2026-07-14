@@ -20,13 +20,17 @@ npm run build    # 타입체크 + 프로덕션 빌드
 
 ## 화면 구성
 
+**상단 헤더**
+- 배치 전략 토글(binpack / spread)
+- 라이트/다크 테마 전환 — 선택은 localStorage에 저장되고, 첫 방문 시에는 OS 설정을 따릅니다
+
 **좌측 — 입력 패널**
 - 노드 풀 테이블: GPU 모델(H100-80GB / A100-40GB / L40S-48GB), GPU 수, vCPU, 메모리,
   동일 스펙 노드 수, MIG 모드(disabled / static / dynamic)
 - static 모드 레이아웃 빌더: 프로파일을 추가하면 slice 게이지가 7까지 차오르고, 초과하는
   프로파일은 추가 버튼이 비활성화됩니다
 - 워크로드 테이블: Full GPU / MIG 프로파일 요청 토글, vCPU·메모리·replicas, 모델 제약
-- 배치 전략 토글(binpack / spread)과 프리셋 3종
+- 프리셋 3종
 - 모든 입력은 localStorage에 자동 저장/복원됩니다
 
 **중앙 — GPU 히트맵** (CSS Grid, 차트 라이브러리 없음)

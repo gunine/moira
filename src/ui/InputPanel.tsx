@@ -1,22 +1,14 @@
 import { GPU_CATALOG, getGpuModel, getProfile } from "../catalog";
-import type {
-  GpuModelSpec,
-  MigMode,
-  NodeSpec,
-  Strategy,
-  WorkloadSpec,
-} from "../types";
+import type { GpuModelSpec, MigMode, NodeSpec, WorkloadSpec } from "../types";
 import { colorVar } from "./colors";
 import { clamp, uid } from "./util";
 
 interface Props {
   nodes: NodeSpec[];
   workloads: WorkloadSpec[];
-  strategy: Strategy;
   colorSlots: Record<string, number>;
   onNodes: (next: NodeSpec[]) => void;
   onWorkloads: (next: WorkloadSpec[]) => void;
-  onStrategy: (next: Strategy) => void;
   onPreset: (index: number) => void;
   presetLabels: string[];
 }
@@ -372,17 +364,8 @@ function defaultProfileFor(constraint: string | undefined): string {
 // ---------- 패널 ----------
 
 export default function InputPanel(props: Props) {
-  const {
-    nodes,
-    workloads,
-    strategy,
-    colorSlots,
-    onNodes,
-    onWorkloads,
-    onStrategy,
-    onPreset,
-    presetLabels,
-  } = props;
+  const { nodes, workloads, colorSlots, onNodes, onWorkloads, onPreset, presetLabels } =
+    props;
 
   const addNode = () =>
     onNodes([
@@ -416,23 +399,7 @@ export default function InputPanel(props: Props) {
     <div className="input-panel">
       <section>
         <div className="section-head">
-          <h2>전략</h2>
-        </div>
-        <div className="segmented" role="radiogroup" aria-label="배치 전략">
-          <button
-            type="button"
-            className={strategy === "binpack" ? "on" : ""}
-            onClick={() => onStrategy("binpack")}
-          >
-            binpack <small>몰아넣기</small>
-          </button>
-          <button
-            type="button"
-            className={strategy === "spread" ? "on" : ""}
-            onClick={() => onStrategy("spread")}
-          >
-            spread <small>분산</small>
-          </button>
+          <h2>프리셋</h2>
         </div>
         <div className="preset-row">
           {presetLabels.map((label, i) => (

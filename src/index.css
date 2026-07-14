@@ -1,6 +1,9 @@
-/* ---------- 테마 (dataviz 검증 팔레트: 라이트/다크 모두 밸리데이터 통과) ---------- */
+/* ---------- 테마 (dataviz 검증 팔레트: 라이트/다크 모두 밸리데이터 통과) ----------
+   테마는 <html data-theme="light|dark">로 명시 선택된다.
+   첫 방문은 OS 설정을 따르고, 이후에는 헤더 토글 선택이 localStorage에 저장된다. */
 
-:root {
+:root,
+:root[data-theme="light"] {
   color-scheme: light;
   --page: #f9f9f7;
   --surface: #fcfcfb;
@@ -37,41 +40,39 @@
   --tooltip-ink: #ffffff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --ink: #ffffff;
-    --ink-2: #c3c2b7;
-    --ink-muted: #898781;
-    --hairline: #2c2c2a;
-    --baseline: #383835;
-    --border: rgba(255, 255, 255, 0.1);
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --ink-muted: #898781;
+  --hairline: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255, 255, 255, 0.1);
 
-    --series-0: #3987e5;
-    --series-1: #199e70;
-    --series-2: #c98500;
-    --series-3: #008300;
-    --series-4: #9085e9;
-    --series-5: #e66767;
-    --series-6: #d55181;
-    --series-7: #d95926;
-    --series-other: #898781;
+  --series-0: #3987e5;
+  --series-1: #199e70;
+  --series-2: #c98500;
+  --series-3: #008300;
+  --series-4: #9085e9;
+  --series-5: #e66767;
+  --series-6: #d55181;
+  --series-7: #d95926;
+  --series-other: #898781;
 
-    --meter-fill: #3987e5;
-    --meter-track: #184f95;
+  --meter-fill: #3987e5;
+  --meter-track: #184f95;
 
-    --residual: #383835;
-    --idle: #232322;
-    --free-outline: #6f6e68;
+  --residual: #383835;
+  --idle: #232322;
+  --free-outline: #6f6e68;
 
-    --good-text: #0ca30c;
-    --critical: #d03b3b;
+  --good-text: #0ca30c;
+  --critical: #d03b3b;
 
-    --tooltip-bg: #f0efec;
-    --tooltip-ink: #0b0b0b;
-  }
+  --tooltip-bg: #f0efec;
+  --tooltip-ink: #0b0b0b;
 }
 
 /* ---------- 기본 ---------- */
@@ -85,7 +86,17 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   background: var(--page);
   color: var(--ink);
-  font-size: 13px;
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--meter-fill);
+  outline-offset: 1px;
 }
 
 .app {
@@ -94,36 +105,69 @@ body {
   height: 100vh;
 }
 
+/* ---------- 헤더: 브랜드 + 전역 컨트롤(전략·테마) ---------- */
+
 .app-header {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 10px 18px;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--hairline);
   background: var(--surface);
 }
 
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
 .app-header h1 {
   margin: 0;
-  font-size: 17px;
+  font-size: 20px;
   letter-spacing: 0.02em;
 }
 
 .subtitle {
   color: var(--ink-muted);
-  font-size: 12px;
+  font-size: 13.5px;
+}
+
+.header-spacer {
+  flex: 1;
+}
+
+.header-label {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.theme-btn {
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 1px solid var(--baseline);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.theme-btn:hover {
+  border-color: var(--ink-muted);
+  color: var(--ink);
 }
 
 .columns {
   flex: 1;
   display: grid;
-  grid-template-columns: 390px minmax(0, 1fr) 340px;
+  grid-template-columns: clamp(400px, 28vw, 470px) minmax(0, 1fr) clamp(370px, 25vw, 430px);
   min-height: 0;
 }
 
 .col {
   overflow-y: auto;
-  padding: 14px;
+  padding: 18px;
   min-width: 0;
 }
 
@@ -131,32 +175,53 @@ body {
   border-left: 1px solid var(--hairline);
 }
 
+/* 좁은 화면: 세로 스택 + 페이지 스크롤 */
+@media (max-width: 1180px) {
+  .app {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .columns {
+    display: block;
+  }
+
+  .col {
+    overflow: visible;
+  }
+
+  .col + .col {
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+  }
+}
+
 .hint {
   color: var(--ink-muted);
-  font-size: 12px;
+  font-size: 13px;
   margin: 6px 0;
 }
 
 /* ---------- 입력 패널 ---------- */
 
 .input-panel section {
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 }
 
 .section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .section-head h2 {
   margin: 0;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--ink-2);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
 .add-btn,
@@ -164,9 +229,9 @@ body {
   background: var(--surface);
   color: var(--ink-2);
   border: 1px solid var(--baseline);
-  border-radius: 7px;
-  padding: 4px 10px;
-  font-size: 12px;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13.5px;
   cursor: pointer;
 }
 
@@ -180,14 +245,13 @@ body {
 .preset-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
+  gap: 8px;
 }
 
 .segmented {
   display: inline-flex;
   border: 1px solid var(--baseline);
-  border-radius: 8px;
+  border-radius: 9px;
   overflow: hidden;
 }
 
@@ -195,8 +259,8 @@ body {
   border: 0;
   background: var(--surface);
   color: var(--ink-2);
-  padding: 6px 14px;
-  font-size: 12.5px;
+  padding: 7px 16px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -210,39 +274,39 @@ body {
 }
 
 .segmented small {
-  margin-left: 4px;
+  margin-left: 5px;
   opacity: 0.75;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 12px;
+  padding: 14px 16px;
 }
 
 .entity-card {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .entity-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .name-input {
   flex: 1;
   min-width: 0;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 15px;
   background: transparent;
   color: var(--ink);
   border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 3px 6px;
+  border-radius: 7px;
+  padding: 4px 8px;
 }
 
 .name-input:hover,
@@ -256,8 +320,8 @@ body {
   border: 0;
   color: var(--ink-muted);
   cursor: pointer;
-  font-size: 12px;
-  padding: 4px;
+  font-size: 14px;
+  padding: 6px;
 }
 
 .icon-btn:hover {
@@ -265,8 +329,8 @@ body {
 }
 
 .color-dot {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   flex: none;
 }
@@ -274,18 +338,18 @@ body {
 .field-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
 .field span {
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--ink-muted);
 }
 
@@ -295,9 +359,10 @@ body {
   background: var(--page);
   color: var(--ink);
   border: 1px solid var(--hairline);
-  border-radius: 6px;
-  padding: 4px 6px;
-  font-size: 12.5px;
+  border-radius: 7px;
+  padding: 6px 8px;
+  font-size: 14px;
+  font-family: inherit;
   font-variant-numeric: tabular-nums;
 }
 
@@ -310,17 +375,17 @@ body {
 /* static 레이아웃 빌더 */
 
 .layout-builder {
-  margin-top: 10px;
+  margin-top: 12px;
   border-top: 1px solid var(--hairline);
-  padding-top: 8px;
+  padding-top: 10px;
 }
 
 .layout-head {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--ink-muted);
-  margin-bottom: 6px;
+  margin-bottom: 7px;
 }
 
 .layout-count {
@@ -331,11 +396,11 @@ body {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 2px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .slice-gauge .cell {
-  height: 8px;
+  height: 9px;
   border-radius: 2px;
   background: var(--meter-track);
 }
@@ -347,8 +412,8 @@ body {
 .chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 6px;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .chip {
@@ -356,8 +421,8 @@ body {
   border: 1px solid var(--baseline);
   color: var(--ink-2);
   border-radius: 999px;
-  padding: 2px 9px;
-  font-size: 11.5px;
+  padding: 3px 11px;
+  font-size: 13px;
   cursor: pointer;
   font-variant-numeric: tabular-nums;
 }
@@ -371,14 +436,14 @@ body {
   cursor: not-allowed;
 }
 
-/* ---------- 중앙: JSON / 히트맵 ---------- */
+/* ---------- 중앙: 히트맵 ---------- */
 
 .json-view {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px;
-  font-size: 11.5px;
+  font-size: 12.5px;
   overflow: auto;
   white-space: pre;
   margin: 0;
@@ -387,29 +452,29 @@ body {
 .legend-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 12px;
-  font-size: 12px;
+  gap: 8px 14px;
+  margin-bottom: 14px;
+  font-size: 13.5px;
   color: var(--ink-2);
 }
 
 .legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .node-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 14px;
 }
 
 .node-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 12px;
+  padding: 13px 15px;
 }
 
 .node-head {
@@ -417,36 +482,36 @@ body {
   justify-content: space-between;
   align-items: baseline;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .node-name {
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 14.5px;
 }
 
 .node-meta {
   color: var(--ink-muted);
-  font-size: 11px;
+  font-size: 12.5px;
   white-space: nowrap;
 }
 
 .gpu-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .gpu-row {
   display: grid;
-  grid-template-columns: 44px 1fr;
+  grid-template-columns: 56px 1fr;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .gpu-tag {
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -456,17 +521,14 @@ body {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 2px; /* surface gap — 인접 블록은 간격으로 구분 */
-  height: 20px;
+  height: 26px;
 }
 
 .blk {
   position: relative;
   border-radius: 4px;
   min-width: 0;
-}
-
-.blk.alloc {
-  /* 배경색은 인라인 스타일(워크로드 색) */
+  cursor: default;
 }
 
 .blk.free-inst {
@@ -488,14 +550,14 @@ body {
 .blk:hover::after {
   content: attr(data-tip);
   position: absolute;
-  bottom: calc(100% + 6px);
+  bottom: calc(100% + 7px);
   left: 50%;
   transform: translateX(-50%);
   background: var(--tooltip-bg);
   color: var(--tooltip-ink);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 12.5px;
   white-space: nowrap;
   z-index: 20;
   pointer-events: none;
@@ -506,20 +568,20 @@ body {
 
 .meter-row {
   display: grid;
-  grid-template-columns: 40px 1fr 84px;
+  grid-template-columns: 44px 1fr 96px;
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 9px;
+  margin-top: 6px;
 }
 
 .meter-label {
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--ink-muted);
 }
 
 .meter {
-  height: 6px;
-  border-radius: 3px;
+  height: 8px;
+  border-radius: 4px;
   background: var(--meter-track);
   overflow: hidden;
 }
@@ -527,11 +589,11 @@ body {
 .meter .fill {
   height: 100%;
   background: var(--meter-fill);
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 .meter-value {
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--ink-2);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -541,29 +603,29 @@ body {
 /* ---------- 우측: 결과 요약 ---------- */
 
 .summary-panel section {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .summary-panel h2 {
-  margin: 0 0 8px;
-  font-size: 13px;
+  margin: 0 0 10px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--ink-2);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
 .stat-tiles {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 10px;
 }
 
 .stat-tile {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 12px;
+  padding: 12px 14px;
 }
 
 .stat-tile.hero {
@@ -571,47 +633,48 @@ body {
 }
 
 .stat-tile .label {
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--ink-muted);
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .stat-tile .value {
   font-weight: 600;
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .stat-tile.hero .value {
-  font-size: 34px;
+  font-size: 42px;
+  line-height: 1.15;
 }
 
 .stat-tile .detail {
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--ink-2);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .fail-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .fail-item {
   background: var(--surface);
   border: 1px solid var(--border);
   border-left: 3px solid var(--critical);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 12px;
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-size: 13.5px;
 }
 
 .fail-item .who {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-weight: 600;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
 }
 
 .fail-item .why {
@@ -620,17 +683,17 @@ body {
 
 .ok-note {
   color: var(--good-text);
-  font-size: 12px;
+  font-size: 13.5px;
 }
 
 .frag-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13.5px;
 }
 
 .frag-table td {
-  padding: 3px 0;
+  padding: 5px 0;
   border-bottom: 1px solid var(--hairline);
 }
 
@@ -641,9 +704,9 @@ body {
 }
 
 .frag-note {
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--ink-2);
-  margin: 6px 0 0;
+  margin: 8px 0 0;
 }
 
 .frag-note.warn {
@@ -653,6 +716,6 @@ body {
 details.raw-json summary {
   cursor: pointer;
   color: var(--ink-muted);
-  font-size: 12px;
-  margin-bottom: 6px;
+  font-size: 13px;
+  margin-bottom: 8px;
 }

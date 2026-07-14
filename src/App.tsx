@@ -2,13 +2,31 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_STATE, PRESETS } from "./presets";
 import type { AppState } from "./presets";
 import { simulate } from "./simulate";
-import type { SimulationResult, Strategy } from "./types";
+import type { SimulationResult } from "./types";
 import { assignColorSlots } from "./ui/colors";
 import Heatmap from "./ui/Heatmap";
 import InputPanel from "./ui/InputPanel";
 import SummaryPanel from "./ui/SummaryPanel";
 
 const STORAGE_KEY = "moira:v1";
+const THEME_KEY = "moira:theme";
+
+type Theme = "light" | "dark";
+
+function initialTheme(): Theme {
+  // index.html의 부트스트랩 스크립트가 이미 결정해 둔 값을 우선 사용
+  const applied = document.documentElement.dataset.theme;
+  if (applied === "dark" || applied === "light") return applied;
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === "dark" || saved === "light") return saved;
+  } catch {
+    // localStorage 접근 불가 시 OS 설정으로
+  }
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
 
 function loadInitialState(): AppState {
   try {
@@ -38,6 +56,7 @@ function loadInitialState(): AppState {
 
 export default function App() {
   const [state, setState] = useState<AppState>(loadInitialState);
+  const [theme, setTheme] = useState<Theme>(initialTheme);
 
   // 입력 자동 저장
   useEffect(() => {
@@ -47,6 +66,16 @@ export default function App() {
       // 저장 불가(사파리 프라이빗 모드 등)여도 앱은 동작해야 한다
     }
   }, [state]);
+
+  // 테마 적용 + 저장
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      // 저장 실패해도 현재 세션에는 적용된다
+    }
+  }, [theme]);
 
   // 색상 슬롯은 워크로드 id에 고정 배정 — 목록이 바뀌어도 기존 색은 유지
   const slotsRef = useRef<Record<string, number>>({});
@@ -70,19 +99,45 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Moira</h1>
-        <span className="subtitle">GPU 클러스터 용량 시뮬레이터</span>
+        <div className="brand">
+          <h1>Moira</h1>
+          <span className="subtitle">GPU 클러스터 용량 시뮬레이터</span>
+        </div>
+        <div className="header-spacer" />
+        <span className="header-label">배치 전략</span>
+        <div className="segmented" role="radiogroup" aria-label="배치 전략">
+          <button
+            type="button"
+            className={state.strategy === "binpack" ? "on" : ""}
+            onClick={() => setState((s) => ({ ...s, strategy: "binpack" }))}
+          >
+            binpack <small>몰아넣기</small>
+          </button>
+          <button
+            type="button"
+            className={state.strategy === "spread" ? "on" : ""}
+            onClick={() => setState((s) => ({ ...s, strategy: "spread" }))}
+          >
+            spread <small>분산</small>
+          </button>
+        </div>
+        <button
+          type="button"
+          className="theme-btn"
+          onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
+          aria-label={theme === "light" ? "다크 테마로 전환" : "라이트 테마로 전환"}
+        >
+          {theme === "light" ? "🌙 다크" : "☀️ 라이트"}
+        </button>
       </header>
       <main className="columns">
         <div className="col col-input">
           <InputPanel
             nodes={state.nodes}
             workloads={state.workloads}
-            strategy={state.strategy}
             colorSlots={colorSlots}
             onNodes={(nodes) => setState((s) => ({ ...s, nodes }))}
             onWorkloads={(workloads) => setState((s) => ({ ...s, workloads }))}
-            onStrategy={(strategy: Strategy) => setState((s) => ({ ...s, strategy }))}
             onPreset={(i) => setState(PRESETS[i].build())}
             presetLabels={PRESETS.map((p) => p.label)}
           />
