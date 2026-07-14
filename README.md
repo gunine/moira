@@ -18,6 +18,26 @@ npm test         # vitest — 시뮬레이션 로직 테스트 18개
 npm run build    # 타입체크 + 프로덕션 빌드
 ```
 
+## 배포 (GitHub Pages)
+
+`https://<계정명>.github.io/moira/` 경로로 서빙됩니다.
+프로덕션 빌드에만 `base: "/moira/"`가 적용되므로 로컬 개발(`npm run dev`)은
+기존처럼 `http://localhost:5173/` 루트에서 동작합니다.
+
+**최초 1회 설정** — GitHub 저장소 웹에서:
+
+1. **Settings → Pages → Build and deployment → Source**를 **"GitHub Actions"** 로 변경
+
+**이후 자동 배포 흐름** — `main` 브랜치에 push하면
+[.github/workflows/deploy.yml](.github/workflows/deploy.yml)이 실행됩니다:
+
+```
+npm ci → npm test → npm run build → dist 업로드 → GitHub Pages 배포
+```
+
+테스트가 하나라도 실패하면 빌드·배포 없이 워크플로우가 중단됩니다.
+배포 상태는 저장소 **Actions** 탭에서 확인할 수 있습니다.
+
 ## 화면 구성
 
 **상단 헤더**
