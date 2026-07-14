@@ -1,3 +1,4 @@
+import type { Lang } from "./i18n";
 import type { NodeSpec, Strategy, WorkloadSpec } from "./types";
 
 export interface AppState {
@@ -7,14 +8,18 @@ export interface AppState {
 }
 
 export interface Preset {
-  label: string;
-  build: () => AppState;
+  label: Record<Lang, string>;
+  /** Workload display names inside the preset follow the active language. */
+  build: (lang: Lang) => AppState;
 }
 
 export const PRESETS: Preset[] = [
   {
-    label: "H100×8 MIG없음 ×4대",
-    build: () => ({
+    label: {
+      en: "H100×8 no MIG ×4 nodes",
+      ko: "H100×8 MIG없음 ×4대",
+    },
+    build: (lang) => ({
       strategy: "binpack",
       nodes: [
         {
@@ -31,7 +36,7 @@ export const PRESETS: Preset[] = [
       workloads: [
         {
           id: "p1-train",
-          name: "대규모 학습",
+          name: lang === "ko" ? "대규모 학습" : "Large training",
           gpuRequest: { kind: "full", count: 4 },
           vcpuRequest: 32,
           memoryRequestGiB: 256,
@@ -39,7 +44,7 @@ export const PRESETS: Preset[] = [
         },
         {
           id: "p1-ft",
-          name: "파인튜닝",
+          name: lang === "ko" ? "파인튜닝" : "Fine-tuning",
           gpuRequest: { kind: "full", count: 2 },
           vcpuRequest: 16,
           memoryRequestGiB: 128,
@@ -47,7 +52,7 @@ export const PRESETS: Preset[] = [
         },
         {
           id: "p1-infer",
-          name: "온라인 추론",
+          name: lang === "ko" ? "온라인 추론" : "Online inference",
           gpuRequest: { kind: "full", count: 1 },
           vcpuRequest: 8,
           memoryRequestGiB: 64,
@@ -57,8 +62,11 @@ export const PRESETS: Preset[] = [
     }),
   },
   {
-    label: "H100×8 static 1g×7 ×2대",
-    build: () => ({
+    label: {
+      en: "H100×8 static 1g×7 ×2 nodes",
+      ko: "H100×8 static 1g×7 ×2대",
+    },
+    build: (lang) => ({
       strategy: "binpack",
       nodes: [
         {
@@ -84,7 +92,7 @@ export const PRESETS: Preset[] = [
       workloads: [
         {
           id: "p2-small",
-          name: "소형 추론",
+          name: lang === "ko" ? "소형 추론" : "Small inference",
           gpuRequest: { kind: "mig", profile: "1g.10gb", count: 1 },
           vcpuRequest: 2,
           memoryRequestGiB: 8,
@@ -92,7 +100,7 @@ export const PRESETS: Preset[] = [
         },
         {
           id: "p2-mid",
-          name: "중형 추론",
+          name: lang === "ko" ? "중형 추론" : "Mid inference",
           gpuRequest: { kind: "mig", profile: "3g.40gb", count: 1 },
           vcpuRequest: 8,
           memoryRequestGiB: 32,
@@ -100,7 +108,7 @@ export const PRESETS: Preset[] = [
         },
         {
           id: "p2-batch",
-          name: "배치 학습",
+          name: lang === "ko" ? "배치 학습" : "Batch training",
           gpuRequest: { kind: "full", count: 1 },
           vcpuRequest: 8,
           memoryRequestGiB: 64,
@@ -110,8 +118,11 @@ export const PRESETS: Preset[] = [
     }),
   },
   {
-    label: "A100×4 dynamic ×4대",
-    build: () => ({
+    label: {
+      en: "A100×4 dynamic ×4 nodes",
+      ko: "A100×4 dynamic ×4대",
+    },
+    build: (lang) => ({
       strategy: "binpack",
       nodes: [
         {
@@ -128,7 +139,7 @@ export const PRESETS: Preset[] = [
       workloads: [
         {
           id: "p3-train",
-          name: "학습 잡",
+          name: lang === "ko" ? "학습 잡" : "Training job",
           gpuRequest: { kind: "full", count: 2 },
           vcpuRequest: 16,
           memoryRequestGiB: 128,
@@ -136,7 +147,7 @@ export const PRESETS: Preset[] = [
         },
         {
           id: "p3-mid",
-          name: "중형 추론",
+          name: lang === "ko" ? "중형 추론" : "Mid inference",
           gpuRequest: { kind: "mig", profile: "3g.20gb", count: 1 },
           vcpuRequest: 8,
           memoryRequestGiB: 32,
@@ -144,7 +155,7 @@ export const PRESETS: Preset[] = [
         },
         {
           id: "p3-small",
-          name: "소형 추론",
+          name: lang === "ko" ? "소형 추론" : "Small inference",
           gpuRequest: { kind: "mig", profile: "1g.5gb", count: 1 },
           vcpuRequest: 2,
           memoryRequestGiB: 8,
@@ -155,4 +166,6 @@ export const PRESETS: Preset[] = [
   },
 ];
 
-export const DEFAULT_STATE: AppState = PRESETS[2].build();
+export function defaultState(lang: Lang): AppState {
+  return PRESETS[2].build(lang);
+}

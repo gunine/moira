@@ -1,137 +1,157 @@
-# Moira — GPU 클러스터 용량 시뮬레이터
+# Moira — GPU Cluster Capacity Simulator
 
-노드 풀과 워크로드 목록을 입력하면, kube-scheduler를 단순화한 bin-packing 시뮬레이션으로
-배치 결과를 계산하고 MIG 파티셔닝을 포함한 GPU 점유 상태를 시각화하는 도구입니다.
+Given a set of node pools and a workload list, Moira runs a simplified
+kube-scheduler-style bin-packing simulation, computes placement results, and
+visualizes GPU occupancy including MIG partitioning.
 
-핵심 가치는 **배치 실패 시 어떤 자원/제약이 병목인지 구분해서 보여주는 것**입니다 —
-단순히 "실패"가 아니라 GPU 부족인지, vCPU 병목인지, MIG 파티셔닝으로 GPU가 잠긴 것인지를
-사람이 읽을 수 있는 문장으로 알려줍니다.
+Its core value is **telling you which resource or constraint is the bottleneck
+when placement fails** — not just "failed", but whether it was a GPU shortage,
+a vCPU bottleneck, or GPUs locked away by MIG partitioning, explained in
+human-readable sentences.
 
-백엔드 없이 모든 시뮬레이션은 브라우저에서 순수 함수로 실행됩니다.
+There is no backend; every simulation runs in the browser as pure functions.
 
-## 실행
+## Running
 
 ```bash
 npm install
-npm run dev      # 개발 서버 (http://localhost:5173)
-npm test         # vitest — 시뮬레이션 로직 테스트 18개
-npm run build    # 타입체크 + 프로덕션 빌드
+npm run dev      # dev server (http://localhost:5173)
+npm test         # vitest — 18 tests for the simulation logic
+npm run build    # typecheck + production build
 ```
 
-## 배포 (GitHub Pages)
+## Deployment (GitHub Pages)
 
-`https://<계정명>.github.io/moira/` 경로로 서빙됩니다.
-프로덕션 빌드에만 `base: "/moira/"`가 적용되므로 로컬 개발(`npm run dev`)은
-기존처럼 `http://localhost:5173/` 루트에서 동작합니다.
+Served under `https://<account>.github.io/moira/`.
+`base: "/moira/"` applies only to production builds, so local development
+(`npm run dev`) keeps working from the `http://localhost:5173/` root.
 
-**최초 1회 설정** — GitHub 저장소 웹에서:
+**One-time setup** — in the GitHub repository web UI:
 
-1. **Settings → Pages → Build and deployment → Source**를 **"GitHub Actions"** 로 변경
+1. Change **Settings → Pages → Build and deployment → Source** to **"GitHub Actions"**
 
-**이후 자동 배포 흐름** — `main` 브랜치에 push하면
-[.github/workflows/deploy.yml](.github/workflows/deploy.yml)이 실행됩니다:
+**Automatic deploys afterwards** — pushing to the `main` branch runs
+[.github/workflows/deploy.yml](.github/workflows/deploy.yml):
 
 ```
-npm ci → npm test → npm run build → dist 업로드 → GitHub Pages 배포
+npm ci → npm test → npm run build → upload dist → deploy to GitHub Pages
 ```
 
-테스트가 하나라도 실패하면 빌드·배포 없이 워크플로우가 중단됩니다.
-배포 상태는 저장소 **Actions** 탭에서 확인할 수 있습니다.
+If any test fails, the workflow stops without building or deploying.
+Deployment status is visible in the repository's **Actions** tab.
 
-## 화면 구성
+## UI layout
 
-**상단 헤더**
-- 배치 전략 토글(binpack / spread)
-- 라이트/다크 테마 전환 — 선택은 localStorage에 저장되고, 첫 방문 시에는 OS 설정을 따릅니다
+**Top header**
+- Placement strategy toggle (binpack / spread)
+- Language toggle (한국어 / English) — the choice is saved to localStorage;
+  first visits follow the browser language
+- Light/dark theme toggle — the choice is saved to localStorage; first visits
+  follow the OS preference
 
-**좌측 — 입력 패널**
-- 노드 풀 테이블: GPU 모델(H100-80GB / A100-40GB / L40S-48GB), GPU 수, vCPU, 메모리,
-  동일 스펙 노드 수, MIG 모드(disabled / static / dynamic)
-- static 모드 레이아웃 빌더: 프로파일을 추가하면 slice 게이지가 7까지 차오르고, 초과하는
-  프로파일은 추가 버튼이 비활성화됩니다
-- 워크로드 테이블: Full GPU / MIG 프로파일 요청 토글, vCPU·메모리·replicas, 모델 제약
-- 프리셋 3종
-- 모든 입력은 localStorage에 자동 저장/복원됩니다
+**Left — input panel**
+- Node pool table: GPU model (H100-80GB / A100-40GB / L40S-48GB), GPU count,
+  vCPU, memory, number of identical nodes, MIG mode (disabled / static / dynamic)
+- Static-mode layout builder: adding profiles fills a slice gauge up to 7, and
+  profiles that would overflow have their add button disabled
+- Workload table: Full GPU / MIG profile request toggle, vCPU/memory/replicas,
+  model constraint
+- 3 presets
+- Every input is auto-saved to and restored from localStorage
 
-**중앙 — GPU 히트맵** (CSS Grid, 차트 라이브러리 없음)
-- 노드 1개 = 카드 1개, GPU 1개 = 가로 7칸 슬라이스 바
-- whole 할당은 7칸 전체가 워크로드 색, MIG 인스턴스는 slice 폭만큼 블록
-  (할당 = 워크로드 색, 미할당 인스턴스 = 점선 테두리, 커빙되지 않은 잔여 slice = 회색)
-- static으로 사전 파티셔닝된 GPU에는 🔒 표시, 호버 시 워크로드/프로파일 툴팁
-- 카드 하단에 vCPU/메모리 점유율 미터
+**Center — GPU heatmap** (CSS Grid, no chart library)
+- 1 node = 1 card, 1 GPU = a horizontal 7-cell slice bar
+- Whole allocations fill all 7 cells with the workload color; MIG instances
+  are blocks sized by slice width (allocated = workload color, unallocated
+  instance = dashed outline, uncarved residual slices = gray)
+- Statically pre-partitioned GPUs show a 🔒; hovering shows a
+  workload/profile tooltip
+- vCPU/memory occupancy meters at the bottom of each card
 
-**우측 — 결과 요약**
-- 배치 성공률, slice 단위 GPU 활용률, 노드 평균 점유율
-- 배치 실패 목록: 워크로드별 실패 사유를 문장으로 표시
-- 프래그멘테이션 리포트: 미할당 slice 분해(유휴 whole GPU / 미할당 인스턴스 / 잔여 slice),
-  현재 상태에서 수용 불가능한 최소 프로파일
+**Right — result summary**
+- Placement success rate, slice-level GPU utilization, average node occupancy
+- Placement failure list: per-workload failure reasons as sentences
+- Fragmentation report: unallocated-slice breakdown (idle whole GPUs /
+  unallocated instances / residual slices), plus the smallest profile the
+  current state cannot accept
 
-## 시뮬레이션 모델
+## Simulation model
 
-전체 로직은 [src/simulate.ts](src/simulate.ts)에 순수 함수로 격리되어 있습니다.
-다이어그램과 함께 보는 상세 동작 원리는 [docs/how-it-works.md](docs/how-it-works.md)를 참고하세요.
+All logic is isolated as pure functions in [src/simulate.ts](src/simulate.ts).
+For a detailed walkthrough with diagrams, see
+[docs/how-it-works.md](docs/how-it-works.md).
 
 ```ts
 simulate(nodes: NodeSpec[], workloads: WorkloadSpec[], { strategy: "binpack" | "spread" })
   => { placements, gpuStates, nodeStates }
 ```
 
-**전처리**
-1. 노드 풀을 `count`만큼 개별 노드로 전개
-2. `migMode: "static"` 노드는 `staticLayout`대로 모든 GPU를 미리 파티셔닝
-   (파티셔닝된 GPU는 whole 할당 불가)
-3. 워크로드 정렬: full 요청(GPU count 내림차순) → MIG 요청(프로파일 slices 내림차순).
-   full을 먼저 배치해야 dynamic 노드의 온전한 GPU가 MIG 커빙으로 소모되는 것을 막습니다
+**Preprocessing**
+1. Expand each node pool into `count` individual nodes
+2. Nodes with `migMode: "static"` pre-partition all GPUs per `staticLayout`
+   (partitioned GPUs cannot take whole allocations)
+3. Sort workloads: full requests (GPU count descending) → MIG requests
+   (profile slices descending). Placing full requests first keeps dynamic
+   nodes' intact GPUs from being consumed by MIG carving
 
-**파드별 배치**
-- Full 요청: 미할당 whole GPU가 count개 이상 + vCPU/메모리 잔량 + 모델 제약을 통과한
-  노드 중 전략 점수(binpack = 점유율 높은 노드, spread = 낮은 노드)로 선택
-- MIG 요청: ① 해당 프로파일의 미할당 인스턴스가 충분한 노드 재사용(커빙보다 우선) →
-  ② 없으면 dynamic 노드의 미사용 whole GPU 하나를 homogeneous 정책으로 커빙
-  (예: 1g 요청 → 1g×7, 2g 요청 → 2g×3 + 잔여 1 slice)
-- vCPU/메모리는 MIG 여부와 무관하게 노드 단위 총량에서 차감
+**Per-pod placement**
+- Full requests: among nodes with at least `count` unallocated whole GPUs,
+  enough remaining vCPU/memory, and a passing model constraint, pick by
+  strategy score (binpack = most-utilized node, spread = least-utilized)
+- MIG requests: ① reuse a node with enough unallocated instances of the
+  profile (preferred over carving) → ② otherwise carve one unused whole GPU
+  on a dynamic node with the homogeneous policy
+  (e.g. 1g request → 1g×7, 2g request → 2g×3 + 1 residual slice)
+- vCPU/memory are deducted from node-level totals regardless of MIG
 
-**실패 사유(failReason) 구분**
+**Failure reason (failReason) breakdown**
 
-| 사유 | 의미 |
+| Reason | Meaning |
 |---|---|
-| `gpu` | 어떤 노드에도 요청 수만큼의 온전한 GPU가 없음 |
-| `mig-mode-mismatch` | GPU 수는 충분하지만 MIG 파티셔닝으로 잠겨 whole 할당 불가 |
-| `vcpu` / `memory` | GPU는 확보 가능하지만 vCPU/메모리 잔량 부족 |
-| `model` | 모델 제약 불일치, 또는 MIG 미지원 모델(L40S)에 MIG 요청 |
-| `mig-no-instance` | 미할당 인스턴스 없음 (static 노드는 새로 커빙하지 않음) |
-| `mig-cannot-carve` | dynamic 노드에 커빙할 미사용 whole GPU가 없음 |
+| `gpu` | No node has as many whole GPUs as requested |
+| `mig-mode-mismatch` | Enough GPUs, but they are locked by MIG partitioning and cannot serve whole allocations |
+| `vcpu` / `memory` | GPUs are available, but remaining vCPU/memory falls short |
+| `model` | Model constraint mismatch, or a MIG request against a model without MIG support (L40S) |
+| `mig-no-instance` | No unallocated instances (static nodes never carve new ones) |
+| `mig-cannot-carve` | No unused whole GPU left to carve on dynamic nodes |
 
-**결정성 규칙(스펙 외 구현 선택)**
-- 전략 점수 동점이면 노드 전개 순서상 앞 노드를 선택 — 같은 입력은 항상 같은 결과
-- vCPU/메모리 부족이 혼재하면 노드별 첫 부족 자원 기준, 전부 메모리 부족일 때만 `memory`
-- `mig-mode-mismatch`는 "파티셔닝됐지만 인스턴스가 전부 미할당인 GPU"를 whole로
-  되돌린다고 가정했을 때 요청이 충족되는 경우에만 보고
+**Determinism rules (implementation choices beyond the spec)**
+- Strategy score ties pick the node earlier in expansion order — the same
+  input always yields the same result
+- When vCPU and memory shortages are mixed, each node reports its first
+  lacking resource; `memory` is reported only when every node lacks memory
+- `mig-mode-mismatch` is reported only when the request would fit if
+  "partitioned GPUs whose instances are all unallocated" were reverted to
+  whole GPUs
 
-**레이아웃 검증**: `isValidLayout(gpuModel, profiles)`([src/catalog.ts](src/catalog.ts))로
-격리되어 있습니다. v1은 "Σ slices ≤ 7" 합산 모델만 검사하며, NVIDIA 허용 조합 테이블로
-교체하려면 이 함수만 바꾸면 됩니다.
+**Layout validation**: isolated in `isValidLayout(gpuModel, profiles)`
+([src/catalog.ts](src/catalog.ts)). v1 checks only the "Σ slices ≤ 7"
+slice-sum model; to switch to NVIDIA's allowed-combination table, replace
+just this function.
 
-## 프로젝트 구조
+## Project structure
 
 ```
 src/
-  types.ts            데이터 모델 (노드/워크로드/배치 결과)
-  catalog.ts          GPU 카탈로그 시드 + isValidLayout
-  simulate.ts         배치 시뮬레이션 (순수 함수)
-  simulate.test.ts    vitest 테스트 18개
-  presets.ts          프리셋 시나리오 3종
-  App.tsx             상태 관리 + localStorage
+  types.ts            Data model (nodes/workloads/placement results)
+  catalog.ts          GPU catalog seed + isValidLayout
+  simulate.ts         Placement simulation (pure functions)
+  simulate.test.ts    18 vitest tests
+  presets.ts          3 preset scenarios
+  i18n.ts             UI message catalog (Korean/English) + language hook
+  App.tsx             State management + localStorage
   ui/
-    InputPanel.tsx    노드 풀/워크로드/전략 입력
-    Heatmap.tsx       GPU 슬라이스 히트맵
-    SummaryPanel.tsx  결과 요약 + 프래그멘테이션 리포트
-    colors.ts         워크로드 색상 슬롯 배정 (id 고정, 순환 없음)
+    InputPanel.tsx    Node pool/workload/strategy inputs
+    Heatmap.tsx       GPU slice heatmap
+    SummaryPanel.tsx  Result summary + fragmentation report
+    colors.ts         Workload color slot assignment (pinned to id, no cycling)
 ```
 
-## 한계 (v1)
+## Limitations (v1)
 
-- MIG 레이아웃 검증이 slice 합산 근사입니다 — 실제 NVIDIA 허용 조합/배치 위치 제약은
-  반영되지 않습니다
-- 커빙은 파드당 GPU 1개까지만 시도합니다 (여러 GPU에 걸친 단일 파드 MIG 커빙 없음)
-- 스케줄러 점수는 GPU slice 점유율만 반영합니다 (vCPU/메모리는 필터로만 사용)
+- MIG layout validation is a slice-sum approximation — real NVIDIA allowed
+  combinations and placement-position constraints are not modeled
+- Carving tries at most one GPU per pod (no single-pod MIG carving across
+  multiple GPUs)
+- The scheduler score reflects only GPU slice occupancy (vCPU/memory act as
+  filters only)

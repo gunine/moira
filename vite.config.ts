@@ -1,9 +1,9 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
-// GitHub Pages는 https://<계정명>.github.io/moira/ 하위 경로로 서빙되므로
-// 프로덕션 빌드에만 base를 적용한다. dev 서버(npm run dev)는 기존처럼
-// http://localhost:5173/ 루트에서 동작한다.
+// GitHub Pages serves from the https://<account>.github.io/moira/ subpath,
+// so apply the base only to production builds. The dev server (npm run dev)
+// keeps serving from the http://localhost:5173/ root as before.
 export default defineConfig(({ command }) => ({
   base: command === "build" ? "/moira/" : "/",
   plugins: [react()],

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { simulate } from "./simulate";
 import type { NodeSpec, PlacementResult, WorkloadSpec } from "./types";
 
-// ---------- 테스트 헬퍼 ----------
+// ---------- Test helpers ----------
 
 let seq = 0;
 
@@ -38,15 +38,15 @@ function placementsOf(placements: PlacementResult[], workloadId: string) {
   return placements.filter((p) => p.workloadId === workloadId);
 }
 
-// ---------- 1. MIG 없는 기본 bin-packing ----------
+// ---------- 1. Basic bin-packing without MIG ----------
 
-describe("기본 bin-packing (MIG 없음)", () => {
-  it("GPU 총량이 충분하면 모든 파드가 배치된다", () => {
-    const nodes = [node({ id: "pool", gpuCount: 8, count: 2 })]; // 총 16 GPU
+describe("basic bin-packing (no MIG)", () => {
+  it("places every pod when total GPU capacity suffices", () => {
+    const nodes = [node({ id: "pool", gpuCount: 8, count: 2 })]; // 16 GPUs total
     const wl = workload({
       id: "train",
       gpuRequest: { kind: "full", count: 4 },
-      replicas: 4, // 16 GPU 필요
+      replicas: 4, // needs 16 GPUs
     });
 
     const { placements, gpuStates } = simulate(nodes, [wl], {
@@ -59,16 +59,16 @@ describe("기본 bin-packing (MIG 없음)", () => {
       expect(p.gpuAssignments).toHaveLength(4);
       expect(p.failReason).toBeUndefined();
     }
-    // 16개 GPU 전부 whole 할당
+    // all 16 GPUs whole-allocated
     expect(gpuStates.filter((g) => g.wholeAllocatedTo).length).toBe(16);
   });
 
-  it("GPU가 모자라면 초과 파드는 failReason='gpu'로 실패한다", () => {
-    const nodes = [node({ id: "pool", gpuCount: 8, count: 2 })]; // 총 16 GPU
+  it("fails overflow pods with failReason='gpu' when GPUs run out", () => {
+    const nodes = [node({ id: "pool", gpuCount: 8, count: 2 })]; // 16 GPUs total
     const wl = workload({
       id: "train",
       gpuRequest: { kind: "full", count: 4 },
-      replicas: 5, // 20 GPU 필요
+      replicas: 5, // needs 20 GPUs
     });
 
     const { placements } = simulate(nodes, [wl], { strategy: "binpack" });
@@ -79,8 +79,8 @@ describe("기본 bin-packing (MIG 없음)", () => {
     expect(placements.filter((p) => p.nodeId !== null)).toHaveLength(4);
   });
 
-  it("파드 하나의 요청이 단일 노드 GPU 수를 넘으면 노드 수와 무관하게 실패한다", () => {
-    const nodes = [node({ id: "pool", gpuCount: 4, count: 4 })]; // 총 16 GPU, 노드당 4
+  it("fails a pod whose request exceeds a single node's GPU count regardless of node count", () => {
+    const nodes = [node({ id: "pool", gpuCount: 4, count: 4 })]; // 16 GPUs total, 4 per node
     const wl = workload({
       id: "big",
       gpuRequest: { kind: "full", count: 8 },
@@ -92,16 +92,16 @@ describe("기본 bin-packing (MIG 없음)", () => {
   });
 });
 
-// ---------- 2. vCPU 병목 ----------
+// ---------- 2. vCPU bottleneck ----------
 
-describe("vCPU 병목", () => {
-  it("GPU는 남는데 vCPU가 부족하면 failReason='vcpu'", () => {
+describe("vCPU bottleneck", () => {
+  it("reports failReason='vcpu' when GPUs remain but vCPU is short", () => {
     const nodes = [node({ id: "n", gpuCount: 8, vcpu: 16 })];
     const wl = workload({
       id: "cpu-heavy",
       gpuRequest: { kind: "full", count: 1 },
       vcpuRequest: 12,
-      replicas: 2, // 두 번째 파드는 vCPU 잔량 4 < 12
+      replicas: 2, // second pod: remaining vCPU 4 < 12
     });
 
     const { placements, nodeStates } = simulate(nodes, [wl], {
@@ -114,7 +114,7 @@ describe("vCPU 병목", () => {
     expect(nodeStates[0].vcpuUsed).toBe(12);
   });
 
-  it("메모리 부족은 failReason='memory'", () => {
+  it("reports failReason='memory' when memory is short", () => {
     const nodes = [node({ id: "n", gpuCount: 8, memoryGiB: 100 })];
     const wl = workload({
       id: "mem-heavy",
@@ -127,9 +127,9 @@ describe("vCPU 병목", () => {
   });
 });
 
-// ---------- 3. static MIG 레이아웃 ----------
+// ---------- 3. static MIG layout ----------
 
-describe("static MIG 레이아웃", () => {
+describe("static MIG layout", () => {
   const staticNode = () =>
     node({
       id: "mig-node",
@@ -138,11 +138,11 @@ describe("static MIG 레이아웃", () => {
       staticLayout: ["3g.40gb", "3g.40gb", "1g.10gb"], // Σ slices = 7
     });
 
-  it("레이아웃에 있는 프로파일 요청은 인스턴스를 재사용해 배치된다", () => {
+  it("places requests for profiles in the layout by reusing instances", () => {
     const wl = workload({
       id: "infer",
       gpuRequest: { kind: "mig", profile: "3g.40gb", count: 1 },
-      replicas: 2, // 3g 인스턴스 2개 소진
+      replicas: 2, // consumes both 3g instances
     });
 
     const { placements, gpuStates } = simulate([staticNode()], [wl], {
@@ -158,10 +158,10 @@ describe("static MIG 레이아웃", () => {
     expect(gpu.mode).toBe("partitioned");
     expect(gpu.staticPartitioned).toBe(true);
     expect(gpu.instances.filter((i) => i.allocatedTo).length).toBe(2);
-    expect(gpu.instances.filter((i) => !i.allocatedTo).length).toBe(1); // 1g만 남음
+    expect(gpu.instances.filter((i) => !i.allocatedTo).length).toBe(1); // only the 1g remains
   });
 
-  it("레이아웃에 없는 프로파일 요청은 failReason='mig-no-instance'", () => {
+  it("fails requests for profiles missing from the layout with failReason='mig-no-instance'", () => {
     const wl = workload({
       id: "mid",
       gpuRequest: { kind: "mig", profile: "2g.20gb", count: 1 },
@@ -174,10 +174,10 @@ describe("static MIG 레이아웃", () => {
     expect(placements[0].failReason).toBe("mig-no-instance");
   });
 
-  it("인스턴스 수보다 많은 count 요청도 'mig-no-instance'", () => {
+  it("also reports 'mig-no-instance' when count exceeds the available instances", () => {
     const wl = workload({
       id: "many",
-      gpuRequest: { kind: "mig", profile: "1g.10gb", count: 2 }, // 1g는 1개뿐
+      gpuRequest: { kind: "mig", profile: "1g.10gb", count: 2 }, // only one 1g exists
     });
 
     const { placements } = simulate([staticNode()], [wl], {
@@ -187,10 +187,10 @@ describe("static MIG 레이아웃", () => {
   });
 });
 
-// ---------- 6. 파티셔닝으로 잠긴 노드에 full 요청 ----------
+// ---------- 6. full requests against partition-locked nodes ----------
 
-describe("full 요청 vs 파티셔닝된 GPU", () => {
-  it("GPU 수는 충분하지만 전부 파티셔닝돼 있으면 failReason='mig-mode-mismatch'", () => {
+describe("full requests vs partitioned GPUs", () => {
+  it("reports failReason='mig-mode-mismatch' when enough GPUs exist but all are partitioned", () => {
     const nodes = [
       node({
         id: "locked",
@@ -209,7 +209,7 @@ describe("full 요청 vs 파티셔닝된 GPU", () => {
     expect(placements[0].failReason).toBe("mig-mode-mismatch");
   });
 
-  it("파티셔닝과 무관하게 GPU 자체가 모자라면 failReason='gpu'", () => {
+  it("reports failReason='gpu' when GPUs are simply too few, partitioning aside", () => {
     const nodes = [
       node({
         id: "locked",
@@ -220,7 +220,7 @@ describe("full 요청 vs 파티셔닝된 GPU", () => {
     ];
     const wl = workload({
       id: "full-train",
-      gpuRequest: { kind: "full", count: 2 }, // 잠긴 GPU를 풀어도 1개뿐
+      gpuRequest: { kind: "full", count: 2 }, // even unlocked there is only 1 GPU
     });
 
     const { placements } = simulate(nodes, [wl], { strategy: "binpack" });
@@ -228,10 +228,10 @@ describe("full 요청 vs 파티셔닝된 GPU", () => {
   });
 });
 
-// ---------- 4. dynamic MIG 커빙 ----------
+// ---------- 4. dynamic MIG carving ----------
 
-describe("dynamic MIG 커빙", () => {
-  it("1g.10gb ×3 요청 시 GPU 하나가 1g×7로 커빙되고 3개 할당, 4개는 미할당", () => {
+describe("dynamic MIG carving", () => {
+  it("carves one GPU into 1g×7 for a 1g.10gb ×3 request: 3 allocated, 4 left unallocated", () => {
     const nodes = [node({ id: "dyn", gpuCount: 2, migMode: "dynamic" })];
     const wl = workload({
       id: "small-infer",
@@ -247,18 +247,18 @@ describe("dynamic MIG 커빙", () => {
 
     const carved = gpuStates.find((g) => g.gpuIndex === 0)!;
     expect(carved.mode).toBe("partitioned");
-    expect(carved.staticPartitioned).toBeUndefined(); // 커빙은 자물쇠 없음
+    expect(carved.staticPartitioned).toBeUndefined(); // carving gets no lock icon
     expect(carved.instances).toHaveLength(7); // 1g×7 homogeneous
     expect(carved.instances.filter((i) => i.allocatedTo).length).toBe(3);
     expect(carved.instances.filter((i) => !i.allocatedTo).length).toBe(4);
 
-    // 두 번째 GPU는 온전한 상태 유지 (재사용이 커빙보다 우선)
+    // the second GPU stays intact (reuse takes priority over carving)
     const untouched = gpuStates.find((g) => g.gpuIndex === 1)!;
     expect(untouched.mode).toBe("whole");
     expect(untouched.wholeAllocatedTo).toBeUndefined();
   });
 
-  it("2g 프로파일은 floor(7/2)=3개로 커빙되고 잔여 1 slice가 남는다", () => {
+  it("carves 2g profiles into floor(7/2)=3 instances, leaving 1 residual slice", () => {
     const nodes = [
       node({ id: "dyn", gpuModel: "A100-40GB", gpuCount: 1, migMode: "dynamic" }),
     ];
@@ -275,7 +275,7 @@ describe("dynamic MIG 커빙", () => {
     expect(gpuStates[0].instances.every((i) => i.allocatedTo)).toBe(true);
   });
 
-  it("커빙할 whole GPU가 없으면 failReason='mig-cannot-carve'", () => {
+  it("reports failReason='mig-cannot-carve' when no whole GPU is left to carve", () => {
     const nodes = [node({ id: "dyn", gpuCount: 1, migMode: "dynamic" })];
     const workloads = [
       workload({ id: "occupy", gpuRequest: { kind: "full", count: 1 } }),
@@ -291,7 +291,7 @@ describe("dynamic MIG 커빙", () => {
     expect(migResult.failReason).toBe("mig-cannot-carve");
   });
 
-  it("migCapable=false 모델에는 MIG 요청을 배치할 수 없다 (failReason='model')", () => {
+  it("cannot place MIG requests on migCapable=false models (failReason='model')", () => {
     const nodes = [node({ id: "l40s", gpuModel: "L40S-48GB", migMode: "dynamic" })];
     const wl = workload({
       id: "mig-wl",
@@ -303,14 +303,14 @@ describe("dynamic MIG 커빙", () => {
   });
 });
 
-// ---------- 5. full 우선 정렬 ----------
+// ---------- 5. full-first ordering ----------
 
-describe("full 요청과 MIG 요청 혼합 시 full 우선 배치", () => {
-  it("입력 순서와 무관하게 full이 먼저 배치돼야 모든 파드가 성공한다", () => {
-    // 노드 A(2 GPU), B(1 GPU) 모두 dynamic.
-    // 정렬 없이 입력 순서대로 배치하면: MIG가 동점 tie-break로 A의 GPU를 커빙
-    // → full×2가 들어갈 노드가 사라져 실패.
-    // full 우선 정렬 시: full×2 → A, MIG는 B를 커빙 → 전원 성공.
+describe("full requests place before MIG requests when mixed", () => {
+  it("succeeds for every pod only because full places first, regardless of input order", () => {
+    // Nodes A (2 GPUs) and B (1 GPU), both dynamic.
+    // Placing in raw input order: the MIG request carves A's GPU via the
+    // tie-break → no node can take full×2 anymore → failure.
+    // With full-first ordering: full×2 → A, MIG carves B → everyone succeeds.
     const nodes = [
       node({ id: "a", gpuCount: 2, migMode: "dynamic" }),
       node({ id: "b", gpuCount: 1, migMode: "dynamic" }),
@@ -335,9 +335,10 @@ describe("full 요청과 MIG 요청 혼합 시 full 우선 배치", () => {
     expect(placementsOf(placements, "mig-second")[0].nodeId).toBe("b-0");
   });
 
-  it("MIG 요청끼리는 프로파일 slices 내림차순으로 배치된다", () => {
-    // 1 GPU dynamic 노드: 4g를 먼저 커빙하지 않으면(1g가 먼저 커빙하면) 4g가 실패.
-    // slices 내림차순 정렬로 4g가 먼저 GPU를 커빙 → 1g는 커빙할 GPU가 없어 실패.
+  it("orders MIG requests among themselves by profile slices descending", () => {
+    // Single-GPU dynamic node: unless 4g carves first (i.e. if 1g carves
+    // first), the 4g request fails. With slices-descending order, 4g carves
+    // the GPU first → 1g has no GPU left to carve and fails.
     const nodes = [node({ id: "dyn", gpuCount: 1, migMode: "dynamic" })];
     const workloads = [
       workload({
@@ -372,18 +373,18 @@ describe("binpack vs spread", () => {
       replicas: 2,
     });
 
-  it("binpack은 이미 점유된 노드에 몰아넣는다", () => {
+  it("binpack consolidates onto already-occupied nodes", () => {
     const { placements } = simulate(nodes(), [wl()], { strategy: "binpack" });
     const ids = placementsOf(placements, "svc").map((p) => p.nodeId);
     expect(ids[0]).not.toBeNull();
-    expect(ids[0]).toBe(ids[1]); // 같은 노드
+    expect(ids[0]).toBe(ids[1]); // same node
   });
 
-  it("spread는 노드에 고르게 분산한다", () => {
+  it("spread distributes evenly across nodes", () => {
     const { placements } = simulate(nodes(), [wl()], { strategy: "spread" });
     const ids = placementsOf(placements, "svc").map((p) => p.nodeId);
     expect(ids[0]).not.toBeNull();
     expect(ids[1]).not.toBeNull();
-    expect(ids[0]).not.toBe(ids[1]); // 서로 다른 노드
+    expect(ids[0]).not.toBe(ids[1]); // different nodes
   });
 });

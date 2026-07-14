@@ -47,8 +47,8 @@ export function getProfile(
 }
 
 /**
- * 프로파일 이름("3g.40gb")에서 slice 수를 파싱한다.
- * 모델을 모르는 문맥(워크로드 정렬 등)에서 사용.
+ * Parse the slice count from a profile name ("3g.40gb").
+ * Used in contexts that don't know the GPU model (e.g. workload sorting).
  */
 export function profileSlicesFromName(name: string): number {
   const n = parseInt(name, 10);
@@ -56,11 +56,12 @@ export function profileSlicesFromName(name: string): number {
 }
 
 /**
- * GPU 하나에 대한 파티션 레이아웃 유효성 검사.
+ * Validate a partition layout for a single GPU.
  *
- * v1은 "Σ slices ≤ totalSlices" 슬라이스 합산 모델만 검사한다.
- * 실제 NVIDIA MIG는 프로파일 조합/배치 위치에 제약이 있으므로,
- * 추후 허용 조합 테이블 기반 검증으로 교체하려면 이 함수만 바꾸면 된다.
+ * v1 only checks the slice-sum model: "Σ slices ≤ totalSlices".
+ * Real NVIDIA MIG constrains profile combinations and placement positions,
+ * so swapping in an allowed-combination table later only requires replacing
+ * this one function.
  */
 export function isValidLayout(
   gpuModel: GpuModelSpec,

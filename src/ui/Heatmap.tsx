@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { getGpuModel, profileSlicesFromName } from "../catalog";
+import { useI18n } from "../i18n";
+import type { Translator } from "../i18n";
 import type {
   GpuState,
   MigMode,
@@ -48,8 +50,9 @@ function GpuBar(props: {
   gpu: GpuState;
   totalSlices: number;
   podInfo: (podId: string) => PodInfo;
+  t: Translator;
 }) {
-  const { gpu, totalSlices, podInfo } = props;
+  const { gpu, totalSlices, podInfo, t } = props;
   const blocks: ReactNode[] = [];
 
   if (gpu.mode === "whole") {
@@ -60,7 +63,7 @@ function GpuBar(props: {
           key="whole"
           className="blk alloc"
           style={{ gridColumn: `span ${totalSlices}`, background: pod.color }}
-          data-tip={`${pod.name} #${pod.index} · GPU 전체 점유`}
+          data-tip={t("tip.wholeAlloc", { name: pod.name, index: pod.index })}
         />,
       );
     } else {
@@ -69,7 +72,7 @@ function GpuBar(props: {
           key="idle"
           className="blk idle-whole"
           style={{ gridColumn: `span ${totalSlices}` }}
-          data-tip="미사용 GPU (whole)"
+          data-tip={t("tip.idleWhole")}
         />,
       );
     }
@@ -97,7 +100,7 @@ function GpuBar(props: {
             key={i}
             className="blk free-inst"
             style={{ gridColumn: `span ${slices}` }}
-            data-tip={`미할당 인스턴스 · ${inst.profile}`}
+            data-tip={t("tip.freeInstance", { profile: inst.profile })}
           />,
         );
       }
@@ -109,7 +112,7 @@ function GpuBar(props: {
           key="residual"
           className="blk residual"
           style={{ gridColumn: `span ${residual}` }}
-          data-tip={`커빙되지 않은 잔여 slice ×${residual}`}
+          data-tip={t("tip.residual", { count: residual })}
         />,
       );
     }
@@ -155,6 +158,7 @@ function Meter(props: { label: string; used: number; total: number; unit: string
 
 export default function Heatmap(props: Props) {
   const { nodeStates, gpuStates, workloads, colorSlots } = props;
+  const { t } = useI18n();
   const podInfo = usePodInfo(workloads, colorSlots);
 
   const gpusByNode = new Map<string, GpuState[]>();
@@ -167,7 +171,7 @@ export default function Heatmap(props: Props) {
   return (
     <div>
       {workloads.length > 0 && (
-        <div className="legend-row" aria-label="워크로드 범례">
+        <div className="legend-row" aria-label={t("heatmap.legend")}>
           {workloads.map((w) => (
             <span key={w.id} className="legend-item">
               <span
@@ -198,6 +202,7 @@ export default function Heatmap(props: Props) {
                     gpu={gpu}
                     totalSlices={totalSlices}
                     podInfo={podInfo}
+                    t={t}
                   />
                 ))}
               </div>
@@ -212,7 +217,7 @@ export default function Heatmap(props: Props) {
           );
         })}
       </div>
-      {nodeStates.length === 0 && <p className="hint">표시할 노드가 없습니다.</p>}
+      {nodeStates.length === 0 && <p className="hint">{t("heatmap.noNodes")}</p>}
     </div>
   );
 }

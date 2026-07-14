@@ -1,10 +1,11 @@
 /**
- * 워크로드 → 카테고리 색상 슬롯 배정.
+ * Workload → categorical color slot assignment.
  *
- * 색은 엔티티(워크로드 id)를 따라간다: 한번 배정된 슬롯은 목록이 바뀌어도
- * 유지되고, 삭제로 비워진 슬롯만 새 워크로드가 재사용한다.
- * 팔레트는 8슬롯 고정 순서(dataviz 검증 완료)이며 절대 순환 생성하지 않는다 —
- * 9번째 이후 워크로드는 중립 "기타" 색으로 접고 범례/툴팁이 식별을 맡는다.
+ * Colors follow the entity (workload id): once assigned, a slot survives
+ * list edits, and only slots freed by deletion get reused by new workloads.
+ * The palette is a fixed 8-slot sequence (dataviz-validated) and never
+ * cycles — workloads beyond the 8th fold into a neutral "other" color and
+ * the legend/tooltips carry identification.
  */
 
 export const SERIES_SLOTS = 8;

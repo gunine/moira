@@ -1,4 +1,6 @@
 import { GPU_CATALOG, getGpuModel, profileSlicesFromName } from "../catalog";
+import { useI18n } from "../i18n";
+import type { Translator } from "../i18n";
 import type {
   FailReason,
   GpuState,
@@ -13,35 +15,40 @@ interface Props {
   colorSlots: Record<string, number>;
 }
 
-// ---------- 실패 사유 → 사람이 읽는 문장 ----------
+// ---------- Failure reason → human-readable sentence ----------
 
-function failSentence(w: WorkloadSpec | undefined, reason: FailReason): string {
+function failSentence(
+  t: Translator,
+  w: WorkloadSpec | undefined,
+  reason: FailReason,
+): string {
   const req = w?.gpuRequest;
   switch (reason) {
     case "gpu": {
       const count = req?.kind === "full" ? req.count : 1;
-      return `온전한 GPU ${count}개를 확보할 수 있는 노드가 없습니다 (GPU 부족)`;
+      return t("fail.gpu", { count });
     }
     case "vcpu":
-      return "GPU는 확보할 수 있지만 vCPU 잔량이 부족합니다";
+      return t("fail.vcpu");
     case "memory":
-      return "GPU는 확보할 수 있지만 메모리 잔량이 부족합니다";
+      return t("fail.memory");
     case "model":
       return w?.gpuModelConstraint
-        ? `'${w.gpuModelConstraint}' 모델 노드가 없거나 해당 모델이 이 요청을 지원하지 않습니다`
-        : "이 요청을 지원하는 GPU 모델 노드가 없습니다";
+        ? t("fail.modelConstrained", { model: w.gpuModelConstraint })
+        : t("fail.model");
     case "mig-no-instance": {
-      const profile = req?.kind === "mig" ? req.profile : "요청 프로파일";
-      return `'${profile}' 미할당 인스턴스가 없습니다 — static 노드는 새로 커빙하지 않습니다`;
+      const profile =
+        req?.kind === "mig" ? req.profile : t("fail.requestedProfile");
+      return t("fail.migNoInstance", { profile });
     }
     case "mig-cannot-carve":
-      return "dynamic 노드에 커빙할 미사용 whole GPU가 없습니다";
+      return t("fail.migCannotCarve");
     case "mig-mode-mismatch":
-      return "GPU 수는 충분하지만 MIG 파티셔닝으로 잠겨 있어 whole GPU로 사용할 수 없습니다";
+      return t("fail.migModeMismatch");
   }
 }
 
-// ---------- 클러스터 slice 집계 ----------
+// ---------- Cluster-wide slice aggregation ----------
 
 interface SliceStats {
   totalSlices: number;
@@ -121,8 +128,9 @@ function analyzeSlices(result: SimulationResult): SliceStats {
 }
 
 /**
- * 수용 가능성: 지금 이 클러스터 상태에서 프로파일 1개짜리 요청을
- * 받아줄 수 있는가 (기존 미할당 인스턴스 or dynamic 노드 커빙)
+ * Admissibility: given the current cluster state, could a single-instance
+ * request for this profile be accepted (via an existing unallocated
+ * instance, or by carving on a dynamic node)?
  */
 function findSmallestRejectedProfile(
   result: SimulationResult,
@@ -160,12 +168,13 @@ function findSmallestRejectedProfile(
   return null;
 }
 
-// ---------- 패널 ----------
+// ---------- Panel ----------
 
 const pct = (v: number) => `${Math.round(v * 1000) / 10}%`;
 
 export default function SummaryPanel(props: Props) {
   const { result, workloads, colorSlots } = props;
+  const { t } = useI18n();
   const byId = new Map(workloads.map((w) => [w.id, w]));
 
   const totalPods = result.placements.length;
@@ -176,7 +185,7 @@ export default function SummaryPanel(props: Props) {
       ? stats.perNodeUtil.reduce((a, b) => a + b, 0) / stats.perNodeUtil.length
       : 0;
 
-  // 실패를 (워크로드, 사유)로 묶는다
+  // Group failures by (workload, reason)
   const failGroups = new Map<string, { workloadId: string; reason: FailReason; count: number }>();
   for (const p of result.placements) {
     if (p.nodeId !== null || !p.failReason) continue;
@@ -199,43 +208,48 @@ export default function SummaryPanel(props: Props) {
   return (
     <div className="summary-panel">
       <section>
-        <h2>배치 결과</h2>
+        <h2>{t("summary.results")}</h2>
         <div className="stat-tiles">
           <div className="stat-tile hero">
-            <div className="label">배치 성공률</div>
+            <div className="label">{t("summary.successRate")}</div>
             <div className="value">
               {totalPods > 0 ? pct(placedPods / totalPods) : "—"}
             </div>
             <div className="detail">
-              파드 {totalPods}개 중 {placedPods}개 배치
+              {t("summary.successDetail", { placed: placedPods, total: totalPods })}
             </div>
           </div>
           <div className="stat-tile">
-            <div className="label">GPU 활용률 (slice)</div>
+            <div className="label">{t("summary.gpuUtil")}</div>
             <div className="value">
               {stats.totalSlices > 0
                 ? pct(stats.allocatedSlices / stats.totalSlices)
                 : "—"}
             </div>
             <div className="detail">
-              {stats.allocatedSlices}/{stats.totalSlices} slice
+              {t("summary.sliceRatio", {
+                used: stats.allocatedSlices,
+                total: stats.totalSlices,
+              })}
             </div>
           </div>
           <div className="stat-tile">
-            <div className="label">노드 평균 점유율</div>
+            <div className="label">{t("summary.avgNodeUtil")}</div>
             <div className="value">
               {stats.perNodeUtil.length > 0 ? pct(avgNodeUtil) : "—"}
             </div>
-            <div className="detail">노드 {stats.perNodeUtil.length}개 기준</div>
+            <div className="detail">
+              {t("summary.nodeBasis", { count: stats.perNodeUtil.length })}
+            </div>
           </div>
         </div>
       </section>
 
       <section>
-        <h2>배치 실패</h2>
+        <h2>{t("summary.failures")}</h2>
         {failGroups.size === 0 ? (
           <p className="ok-note">
-            {totalPods > 0 ? "✓ 모든 파드가 배치되었습니다" : "워크로드가 없습니다"}
+            {totalPods > 0 ? t("summary.allPlaced") : t("summary.noWorkloads")}
           </p>
         ) : (
           <div className="fail-list">
@@ -252,10 +266,10 @@ export default function SummaryPanel(props: Props) {
                     />
                     {w?.name ?? g.workloadId}
                     <span className="hint" style={{ margin: 0 }}>
-                      파드 {g.count}개 · {g.reason}
+                      {t("summary.failMeta", { count: g.count, reason: g.reason })}
                     </span>
                   </div>
-                  <div className="why">{failSentence(w, g.reason)}</div>
+                  <div className="why">{failSentence(t, w, g.reason)}</div>
                 </div>
               );
             })}
@@ -264,49 +278,55 @@ export default function SummaryPanel(props: Props) {
       </section>
 
       <section>
-        <h2>프래그멘테이션</h2>
+        <h2>{t("frag.title")}</h2>
         <table className="frag-table">
           <tbody>
             <tr>
-              <td>미할당 slice 총수</td>
+              <td>{t("frag.unallocated")}</td>
               <td>
                 {unallocated}/{stats.totalSlices}
               </td>
             </tr>
             <tr>
-              <td>└ 유휴 whole GPU</td>
+              <td>{t("frag.idleWhole")}</td>
               <td>
-                {stats.idleWholeGpus}개 ({stats.idleWholeSlices} slice)
+                {t("frag.idleWholeValue", {
+                  count: stats.idleWholeGpus,
+                  slices: stats.idleWholeSlices,
+                })}
               </td>
             </tr>
             <tr>
-              <td>└ 미할당 MIG 인스턴스</td>
-              <td>{stats.freeInstanceSlices} slice</td>
+              <td>{t("frag.freeInstances")}</td>
+              <td>{t("frag.slices", { count: stats.freeInstanceSlices })}</td>
             </tr>
             <tr>
-              <td>└ 커빙되지 않은 잔여 slice</td>
-              <td>{stats.residualSlices} slice</td>
+              <td>{t("frag.residual")}</td>
+              <td>{t("frag.slices", { count: stats.residualSlices })}</td>
             </tr>
             <tr>
-              <td>여유가 남은 노드</td>
+              <td>{t("frag.nodesWithFree")}</td>
               <td>
-                {stats.nodesWithUsableFree}/{result.nodeStates.length}개
+                {t("frag.nodesWithFreeValue", {
+                  free: stats.nodesWithUsableFree,
+                  total: result.nodeStates.length,
+                })}
               </td>
             </tr>
           </tbody>
         </table>
         {stats.freeInstanceByProfile.size > 0 && (
           <p className="frag-note">
-            미할당 인스턴스:{" "}
-            {[...stats.freeInstanceByProfile.entries()]
-              .map(([profile, count]) => `${profile}×${count}`)
-              .join(", ")}
+            {t("frag.freeInstanceNote", {
+              list: [...stats.freeInstanceByProfile.entries()]
+                .map(([profile, count]) => `${profile}×${count}`)
+                .join(", "),
+            })}
           </p>
         )}
         {stats.residualSlices > 0 && (
           <p className="frag-note">
-            잔여 slice {stats.residualSlices}개는 재파티셔닝 없이는 사용할 수
-            없습니다.
+            {t("frag.residualNote", { count: stats.residualSlices })}
           </p>
         )}
         {migModelsInCluster.map((model) => {
@@ -318,8 +338,8 @@ export default function SummaryPanel(props: Props) {
             >
               {model}:{" "}
               {rejected
-                ? `최소 '${rejected}' 프로파일부터 수용 불가`
-                : "모든 프로파일 수용 가능"}
+                ? t("frag.smallestRejected", { profile: rejected })
+                : t("frag.allAccepted")}
             </p>
           );
         })}
@@ -327,7 +347,7 @@ export default function SummaryPanel(props: Props) {
 
       <section>
         <details className="raw-json">
-          <summary>결과 JSON 보기</summary>
+          <summary>{t("summary.viewJson")}</summary>
           <pre className="json-view">{JSON.stringify(result, null, 2)}</pre>
         </details>
       </section>

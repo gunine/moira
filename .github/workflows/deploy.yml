@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-  # Actions 탭에서 수동 재배포도 가능하게
+  # Allow manual redeploys from the Actions tab
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
   pages: write
   id-token: write
 
-# 동시에 하나의 배포만 진행. 진행 중인 프로덕션 배포는 취소하지 않는다.
+# Run one deployment at a time; never cancel an in-flight production deploy.
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 테스트가 실패하면 여기서 중단되어 배포되지 않는다
+      # If any test fails, the workflow stops here and nothing is deployed
       - name: Run tests
         run: npm test
 

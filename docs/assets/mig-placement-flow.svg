@@ -1,38 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 430" font-family="-apple-system,'Segoe UI',Roboto,'Noto Sans KR',sans-serif">
-<title>MIG 요청 배치 결정 흐름</title>
+<title>MIG request placement decision flow</title>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
 
 <rect x="220" y="40" width="240" height="44" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
-<text x="340" y="62" font-size="14" font-weight="500" fill="#444441" text-anchor="middle" dominant-baseline="central">MIG 요청 (profile × N)</text>
+<text x="340" y="62" font-size="14" font-weight="500" fill="#444441" text-anchor="middle" dominant-baseline="central">MIG request (profile × N)</text>
 
 <line x1="340" y1="84" x2="340" y2="120" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
 
 <rect x="220" y="124" width="240" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-<text x="340" y="142" font-size="14" font-weight="500" fill="#3C3489" text-anchor="middle" dominant-baseline="central">빈 인스턴스 있음?</text>
-<text x="340" y="162" font-size="12" fill="#534AB7" text-anchor="middle" dominant-baseline="central">같은 프로파일 · N개 이상</text>
+<text x="340" y="142" font-size="14" font-weight="500" fill="#3C3489" text-anchor="middle" dominant-baseline="central">Free instances available?</text>
+<text x="340" y="162" font-size="12" fill="#534AB7" text-anchor="middle" dominant-baseline="central">same profile · at least N</text>
 
 <line x1="460" y1="152" x2="500" y2="152" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
-<text x="472" y="138" font-size="12" fill="#888780" dominant-baseline="central">예</text>
+<text x="472" y="138" font-size="12" fill="#888780" dominant-baseline="central">yes</text>
 <rect x="504" y="130" width="140" height="44" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-<text x="574" y="152" font-size="14" font-weight="500" fill="#085041" text-anchor="middle" dominant-baseline="central">재사용 배치</text>
+<text x="574" y="152" font-size="14" font-weight="500" fill="#085041" text-anchor="middle" dominant-baseline="central">Place by reuse</text>
 
 <line x1="340" y1="180" x2="340" y2="224" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
-<text x="354" y="202" font-size="12" fill="#888780" dominant-baseline="central">아니오</text>
+<text x="354" y="202" font-size="12" fill="#888780" dominant-baseline="central">no</text>
 
 <rect x="220" y="228" width="240" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-<text x="340" y="246" font-size="14" font-weight="500" fill="#3C3489" text-anchor="middle" dominant-baseline="central">dynamic 미사용 GPU?</text>
-<text x="340" y="266" font-size="12" fill="#534AB7" text-anchor="middle" dominant-baseline="central">static 노드는 커빙 안 함</text>
+<text x="340" y="246" font-size="14" font-weight="500" fill="#3C3489" text-anchor="middle" dominant-baseline="central">Unused GPU on dynamic?</text>
+<text x="340" y="266" font-size="12" fill="#534AB7" text-anchor="middle" dominant-baseline="central">static nodes never carve</text>
 
 <line x1="460" y1="256" x2="500" y2="256" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
-<text x="472" y="242" font-size="12" fill="#888780" dominant-baseline="central">예</text>
+<text x="472" y="242" font-size="12" fill="#888780" dominant-baseline="central">yes</text>
 <rect x="504" y="234" width="140" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-<text x="574" y="252" font-size="14" font-weight="500" fill="#085041" text-anchor="middle" dominant-baseline="central">커빙 후 배치</text>
-<text x="574" y="272" font-size="12" fill="#0F6E56" text-anchor="middle" dominant-baseline="central">profile × 7 채움</text>
+<text x="574" y="252" font-size="14" font-weight="500" fill="#085041" text-anchor="middle" dominant-baseline="central">Carve, then place</text>
+<text x="574" y="272" font-size="12" fill="#0F6E56" text-anchor="middle" dominant-baseline="central">fill with profile × 7</text>
 
 <line x1="340" y1="284" x2="340" y2="328" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
-<text x="354" y="306" font-size="12" fill="#888780" dominant-baseline="central">아니오</text>
+<text x="354" y="306" font-size="12" fill="#888780" dominant-baseline="central">no</text>
 
 <rect x="200" y="332" width="280" height="56" rx="8" fill="#FCEBEB" stroke="#A32D2D" stroke-width="0.5"/>
-<text x="340" y="350" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle" dominant-baseline="central">배치 실패 기록</text>
+<text x="340" y="350" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle" dominant-baseline="central">Record placement failure</text>
 <text x="340" y="370" font-size="12" fill="#A32D2D" text-anchor="middle" dominant-baseline="central">mig-no-instance / mig-cannot-carve</text>
 </svg>

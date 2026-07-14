@@ -1,7 +1,7 @@
-// ---------- GPU 카탈로그 ----------
+// ---------- GPU catalog ----------
 
 export interface MigProfileSpec {
-  /** "1g.10gb" 형식 */
+  /** e.g. "1g.10gb" */
   name: string;
   slices: 1 | 2 | 3 | 4 | 7;
   memoryGiB: number;
@@ -11,31 +11,34 @@ export interface GpuModelSpec {
   model: string;
   memoryGiB: number;
   migCapable: boolean;
-  /** 현재 세대 GPU는 7로 고정 */
+  /** Fixed at 7 for current-generation GPUs */
   totalSlices: number;
   profiles: MigProfileSpec[];
 }
 
-// ---------- 노드 풀 ----------
+// ---------- Node pools ----------
 
 export type MigMode = "disabled" | "static" | "dynamic";
 
 export interface NodeSpec {
   id: string;
   name: string;
-  /** GPU_CATALOG의 model 참조 */
+  /** References a model in GPU_CATALOG */
   gpuModel: string;
   gpuCount: number;
   vcpu: number;
   memoryGiB: number;
-  /** 동일 스펙 노드 수 (풀 단위 입력) */
+  /** Number of identical nodes (input is pool-level) */
   count: number;
   migMode: MigMode;
-  /** migMode=static일 때 GPU 하나를 파티셔닝할 프로파일 배열. 풀의 모든 GPU에 동일 적용 */
+  /**
+   * Profiles used to partition one GPU when migMode=static.
+   * Applied identically to every GPU in the pool.
+   */
   staticLayout?: string[];
 }
 
-// ---------- 워크로드 ----------
+// ---------- Workloads ----------
 
 export type GpuRequest =
   | { kind: "full"; count: number }
@@ -51,11 +54,11 @@ export interface WorkloadSpec {
   gpuModelConstraint?: string;
 }
 
-// ---------- 시뮬레이션 상태/결과 ----------
+// ---------- Simulation state / results ----------
 
 export interface MigInstanceState {
   profile: string;
-  /** 파드 ID | null */
+  /** Pod ID | null */
   allocatedTo: string | null;
 }
 
@@ -64,9 +67,9 @@ export interface GpuState {
   gpuIndex: number;
   mode: "whole" | "partitioned";
   instances: MigInstanceState[];
-  /** mode=whole일 때 GPU 전체를 점유한 파드 ID */
+  /** Pod ID occupying the entire GPU when mode=whole */
   wholeAllocatedTo?: string;
-  /** static 전처리로 파티셔닝된 GPU (UI 자물쇠 표시용) */
+  /** GPU partitioned during static preprocessing (drives the UI lock icon) */
   staticPartitioned?: boolean;
 }
 
@@ -82,7 +85,7 @@ export type FailReason =
 export interface PlacementResult {
   workloadId: string;
   podIndex: number;
-  /** null = 배치 실패 */
+  /** null = placement failed */
   nodeId: string | null;
   gpuAssignments?: { gpuIndex: number; instanceIndex?: number }[];
   failReason?: FailReason;
@@ -91,7 +94,7 @@ export interface PlacementResult {
 export interface NodeState {
   nodeId: string;
   name: string;
-  /** 이 노드를 전개한 풀(NodeSpec)의 id */
+  /** id of the pool (NodeSpec) this node was expanded from */
   specId: string;
   gpuModel: string;
   migMode: MigMode;

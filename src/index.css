@@ -1,6 +1,7 @@
-/* ---------- 테마 (dataviz 검증 팔레트: 라이트/다크 모두 밸리데이터 통과) ----------
-   테마는 <html data-theme="light|dark">로 명시 선택된다.
-   첫 방문은 OS 설정을 따르고, 이후에는 헤더 토글 선택이 localStorage에 저장된다. */
+/* ---------- Themes (dataviz-validated palette: both light and dark pass the validator) ----------
+   The theme is selected explicitly via <html data-theme="light|dark">.
+   First visits follow the OS preference; afterwards the header toggle choice
+   is persisted to localStorage. */
 
 :root,
 :root[data-theme="light"] {
@@ -14,7 +15,7 @@
   --baseline: #c3c2b7;
   --border: rgba(11, 11, 11, 0.1);
 
-  /* 카테고리 8슬롯 — 고정 순서, 순환 금지 */
+  /* 8 categorical slots — fixed order, never cycled */
   --series-0: #2a78d6;
   --series-1: #1baf7a;
   --series-2: #eda100;
@@ -25,13 +26,13 @@
   --series-7: #eb6834;
   --series-other: #898781;
 
-  /* 미터: 채움과 트랙은 같은 램프의 단계 차이 */
+  /* Meters: fill and track are steps of the same ramp */
   --meter-fill: #2a78d6;
   --meter-track: #cde2fb;
 
-  --residual: #d6d5cd; /* 커빙되지 않은 잔여 slice */
-  --idle: #f1f0ec; /* 미사용 whole GPU */
-  --free-outline: #a3a29b; /* 미할당 MIG 인스턴스 테두리 */
+  --residual: #d6d5cd; /* uncarved residual slices */
+  --idle: #f1f0ec; /* unused whole GPU */
+  --free-outline: #a3a29b; /* unallocated MIG instance outline */
 
   --good-text: #006300;
   --critical: #d03b3b;
@@ -75,7 +76,7 @@
   --tooltip-ink: #0b0b0b;
 }
 
-/* ---------- 기본 ---------- */
+/* ---------- Base ---------- */
 
 * {
   box-sizing: border-box;
@@ -105,7 +106,7 @@ button {
   height: 100vh;
 }
 
-/* ---------- 헤더: 브랜드 + 전역 컨트롤(전략·테마) ---------- */
+/* ---------- Header: brand + global controls (strategy, language, theme) ---------- */
 
 .app-header {
   display: flex;
@@ -175,7 +176,7 @@ button {
   border-left: 1px solid var(--hairline);
 }
 
-/* 좁은 화면: 세로 스택 + 페이지 스크롤 */
+/* Narrow screens: vertical stack + page scroll */
 @media (max-width: 1180px) {
   .app {
     height: auto;
@@ -202,7 +203,7 @@ button {
   margin: 6px 0;
 }
 
-/* ---------- 입력 패널 ---------- */
+/* ---------- Input panel ---------- */
 
 .input-panel section {
   margin-bottom: 22px;
@@ -372,7 +373,7 @@ button {
   border-color: var(--ink-muted);
 }
 
-/* static 레이아웃 빌더 */
+/* Static layout builder */
 
 .layout-builder {
   margin-top: 12px;
@@ -436,7 +437,7 @@ button {
   cursor: not-allowed;
 }
 
-/* ---------- 중앙: 히트맵 ---------- */
+/* ---------- Center: heatmap ---------- */
 
 .json-view {
   background: var(--surface);
@@ -520,7 +521,7 @@ button {
 .slice-bar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px; /* surface gap — 인접 블록은 간격으로 구분 */
+  gap: 2px; /* surface gap — adjacent blocks are separated by spacing */
   height: 26px;
 }
 
@@ -545,7 +546,7 @@ button {
   border: 1px solid var(--hairline);
 }
 
-/* CSS 툴팁 */
+/* CSS tooltip */
 
 .blk:hover::after {
   content: attr(data-tip);
@@ -564,7 +565,7 @@ button {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
-/* 자원 미터 */
+/* Resource meters */
 
 .meter-row {
   display: grid;
@@ -600,7 +601,7 @@ button {
   white-space: nowrap;
 }
 
-/* ---------- 우측: 결과 요약 ---------- */
+/* ---------- Right: result summary ---------- */
 
 .summary-panel section {
   margin-bottom: 20px;
